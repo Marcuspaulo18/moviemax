@@ -1,0 +1,65 @@
+{% load static %}
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pobreflix - Catálogo de Filmes</title>
+
+    <!-- Link para o CSS externo -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <!-- HEADER -->
+    <header class="header">
+        <div class="logo">Pobre<span>flix</span></div>
+
+        <div class="filtros-container">
+            <div class="filtro-grupo">
+                <span class="filtro-label">Gênero</span>
+                <input
+                    type="text"
+                    id="filtroGenero"
+                    class="filtro-input"
+                    placeholder="Ex: Acao, Drama, Comedia..."
+                    autocomplete="off"
+                >
+            </div>
+
+            <div class="filtro-grupo">
+                <span class="filtro-label">Título</span>
+                <input
+                    type="text"
+                    id="filtroTitulo"
+                    class="filtro-input"
+                    placeholder="Buscar por título..."
+                    autocomplete="off"
+                >
+            </div>
+
+            <button class="btn-pesquisar" id="btnPesquisar">Buscar</button>
+            <button class="btn-limpar" id="btnLimpar">Limpar</button>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="status-info" id="statusInfo">
+            <span class="status-texto">Carregando filmes...</span>
+        </div>
+
+        <div id="conteudoPrincipal">
+            <div class="carregando">
+                <div class="spinner"></div>
+                <p>Carregando filmes...</p>
+            </div>
+        </div>
+
+        <div class="paginacao-container" id="paginacaoContainer" style="display: none;">
+            <button class="btn-pagina" id="btnAnterior">← Anterior</button>
+            <span class="info-paginacao" id="infoPaginacao"></span>
+            <button class="btn-pagina" id="btnProximo">Próximo →</button>
+        </div>
+    </main>
+
+    <script src="{% static 'js/script.js' %}"></script>
+</body>
+</html>
