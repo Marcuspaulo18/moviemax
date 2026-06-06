@@ -1,6 +1,7 @@
 import pandas as pd
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from deep_translator import GoogleTranslator
 import kagglehub
 import os
 import ast
@@ -15,6 +16,9 @@ pd.set_option('display.max_columns', 20)
 
 dadosfilme = pd.read_csv(diretoriofilme)
 dadosnota = pd.read_csv(diretoriocredito)
+
+dadosfilme = dadosfilme.infer_objects(copy=False) # Ajuda o pandas a entender os tipos de dados melhor
+dadosfilme = dadosfilme.fillna("")
 
 dadosfilme = dadosfilme.fillna({
     'budget': 0,
@@ -83,15 +87,8 @@ for eng, pt in generos.items():
 
 class ListaFilmes(APIView):
     def get(self, request):
-
         gettitulo = request.query_params.get('titulo', None)
         getgenero = request.query_params.get('genero', None)
-
-        try:
-            paginaatual = int(request.query_params.get('pagina', 1))
-            if paginaatual < 1: paginaatual = 1
-        except ValueError:
-            paginaatual = 1
 
         dadosfiltrados = dadosfilme.copy()
 
@@ -99,22 +96,42 @@ class ListaFilmes(APIView):
             dadosfiltrados = dadosfiltrados[
                 dadosfiltrados['generos'].str.contains(getgenero, case=False, na=False)
             ]
-        else:
-            dadosfiltrados = dadosfiltrados.copy()
 
         if gettitulo:
+            termos_busca = [gettitulo]
+
+            try:
+                traducao_en = GoogleTranslator(source='pt', target='en').translate(gettitulo)
+
+                if traducao_en and traducao_en.lower() != gettitulo.lower():
+                    termos_busca.append(traducao_en)
+            except Exception as e:
+                print(f"Erro temporário na tradução: {e}")
+
+            expressao_regex = "|".join([f".*{t}.*" for t in termos_busca])
+
             dadosfiltrados = dadosfiltrados[
-                dadosfiltrados['titulo'].str.contains(gettitulo, case=False, na=False)
+                dadosfiltrados['titulo'].str.contains(expressao_regex, case=False, na=False)
             ]
-        else:
-            dadosfiltrados = dadosfiltrados.copy()
 
-        itensporpagina = 10
-
+        itensporpagina = 24
         total_itens = len(dadosfiltrados)
+
+        # Calcula o total de páginas real baseado nos itens filtrados
         total_paginas = (total_itens + itensporpagina - 1) // itensporpagina
-        if total_paginas == 0: total_paginas = 1
-        if paginaatual > total_paginas: paginaatual = total_paginas
+        if total_paginas == 0:
+            total_paginas = 1
+
+        # 3. Validação e Captura da Página Atual
+        try:
+            paginaatual = int(request.query_params.get('pagina', 1))
+            if paginaatual < 1:
+                paginaatual = 1
+        except ValueError:
+            paginaatual = 1
+
+        if paginaatual > total_paginas:
+            paginaatual = total_paginas
 
         inicio = (paginaatual - 1) * itensporpagina
         fim = inicio + itensporpagina
@@ -144,28 +161,22 @@ class ListaFilmes(APIView):
                 filme['palavraschave'] = []
 
             try:
-                listapalavras = ast.literal_eval(filme['companhiasproducao'])
-                filme['companhiasproducao'] = [p['name'] for p in listapalavras]
+                listacompanhias = ast.literal_eval(filme['companhiasproducao'])
+                filme['companhiasproducao'] = [p['name'] for p in listacompanhias]
             except:
                 filme['companhiasproducao'] = []
 
             try:
-                listapalavras = ast.literal_eval(filme['paisesproducao'])
-                filme['paisesproducao'] = [p['name'] for p in listapalavras]
+                listapaises = ast.literal_eval(filme['paisesproducao'])
+                filme['paisesproducao'] = [p['name'] for p in listapaises]
             except:
                 filme['paisesproducao'] = []
-
-        total_itens = len(dadosfiltrados)
-
-        if total_itens == 0:
-            totalpaginas = 1
-        else:
-            totalpaginas = (total_itens + itensporpagina - 1) // itensporpagina
 
         return Response({
             "status": "sucesso",
             "paginaatual": paginaatual,
             "itensencontrados": total_itens,
-            "totalpaginas": totalpaginas,
+            "totalpaginas": total_paginas,
             "listafilmes": listapararetorno
         })
+

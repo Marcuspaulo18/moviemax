@@ -3,26 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pobreflix - Catálogo de Filmes</title>
+    <title>Moviemax - Catálogo de Filmes</title>
 
     <!-- Link para o CSS externo -->
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=1.2">
 </head>
 <body>
     <!-- HEADER -->
     <header class="header">
-        <div class="logo">Pobre<span>flix</span></div>
+        <div class="logo"><span>MOVIEMAX</span></div>
 
         <div class="filtros-container">
             <div class="filtro-grupo">
                 <span class="filtro-label">Gênero</span>
-                <input
+                <select
                     type="text"
                     id="filtroGenero"
                     class="filtro-input"
-                    placeholder="Ex: Acao, Drama, Comedia..."
                     autocomplete="off"
                 >
+                    <option class="filtro-input" value="">Esolha o Genero</option>
+                    <option class="filtro-input" value="Acao">Acao</option>
+                    <option class="filtro-input" value="Aventura">Aventura</option>
+                    <option class="filtro-input" value="Animacao">Animacao</option>
+                    <option class="filtro-input"value="Infantil">Infantil</option>
+                    <option class="filtro-input"value="Comedia">Comedia</option>
+                    <option class="filtro-input" value="Crime">Crime</option>
+                    <option class="filtro-input"value="Documentario">Documentario</option>
+                    <option class="filtro-input" value="Drama">Drama</option>
+                    <option class="filtro-input" value="Fantasia">Fantasia</option>
+                    <option class="filtro-input" value="Filme-Noir">Filme-Noir</option>
+                    <option class="filtro-input"value="Terror">Terror</option>
+                    <option class="filtro-input" value="Musical">Musical</option>
+                    <option class="filtro-input" value="Misterio">Misterio</option>
+                    <option class="filtro-input" value="Romance">Romance</option>
+                    <option class="filtro-input"value="Ficcao Cientifica">Ficção Cientifica</option>
+                    <option class="filtro-input" value="Suspense">Suspense</option>
+                    <option class="filtro-input" value="Guerra">Guerra</option>
+                    <option class="filtro-input"value="Faroeste">Faroeste</option>
+                </select>
             </div>
 
             <div class="filtro-grupo">
@@ -60,6 +79,6 @@
         </div>
     </main>
 
-    <script src="{% static 'js/script.js' %}"></script>
+    <script src="{% static 'js/script.js' %}?v=1.2"></script>
 </body>
 </html>

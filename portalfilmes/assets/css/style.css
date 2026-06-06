@@ -61,13 +61,14 @@ body {
     margin-bottom: 20px;
     letter-spacing: -1px;
     font-family: var(--font-title);
-    transition: transform var(--transition-fast);
+    /*transition: transform var(--transition-fast);*/
 }
+/*
 
 .logo:hover {
     transform: scale(1.05);
 }
-
+*/
 .logo span {
     color: var(--primary);
 }
@@ -378,6 +379,13 @@ body {
     color: var(--primary);
 }
 
+.filme-poster-img {
+    width: 100%;
+    height: 300px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
 /* ===================================
    PAGINAÇÃO
    =================================== */
@@ -387,8 +395,8 @@ body {
     justify-content: center;
     align-items: center;
     gap: 10px;
-    margin: 40px 0;
-    padding: 20px 0;
+    margin: 30px 0;
+    padding: 30px 0;
     border-top: 1px solid var(--border);
     animation: slideUp 0.4s ease;
 }
@@ -408,8 +416,8 @@ body {
     background: var(--bg-secondary);
     border: 1px solid var(--border);
     color: var(--text-primary);
-    width: 40px;
-    height: 40px;
+    width: 50px;
+    height: 50px;
     border-radius: 4px;
     display: flex;
     align-items: center;

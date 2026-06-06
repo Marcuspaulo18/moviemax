@@ -16,7 +16,7 @@ const APP = {
 
     // Inicializar a aplicação
     init: function() {
-        console.log('Inicializando Pobreflix...');
+        console.log('Inicializando moviemax...');
         this.cacheDOMElements();
         this.adicionarEventListeners();
         this.buscarFilmes(1);
@@ -62,7 +62,42 @@ const APP = {
 // ===================================
 // MÉTODOS DE BUSCA E API
 // ===================================
+/**
+ * Busca o poster no TMDb pelo título e atualiza o elemento da imagem no card
+ * @param {string} titulo - Título do filme
+ * @param {HTMLElement} cardElement - O elemento HTML do card deste filme
+ */
+APP.buscarEAtualizarPoster = function(titulo, cardElement) {
+    const API_KEY = '0952ce440e4c723a2cc5b6c3df8c6c27'; // <- Cole sua chave aqui
+    const url = `https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(titulo)}&language=pt-BR`;
 
+    fetch(url)
+        .then(response => {
+            if (!response.ok) throw new Error('Erro TMDb');
+            return response.json();
+        })
+        .then(dados => {
+
+            if (dados.results && dados.results.length > 0 && dados.results[0].poster_path) {
+                const posterPath = dados.results[0].poster_path;
+                const urlImagemFinal = `https://image.tmdb.org/t/p/w500${posterPath}`;
+
+                const imgElement = cardElement.querySelector('.filme-poster-img');
+                const placeholder = cardElement.querySelector('.filme-poster-placeholder');
+
+                if (imgElement) {
+                    imgElement.src = urlImagemFinal;
+                    imgElement.alt = titulo;
+                    imgElement.style.display = 'block'; // Mostra a imagem real
+                    if (placeholder) placeholder.style.display = 'none'; // Esconde o emoji de claquete
+                }
+            }
+        })
+        .catch(erro => {
+            console.warn(`Não foi possível carregar o pôster para: ${titulo}`, erro);
+            // Se der erro, o card continua exibindo o emoji de claquete perfeitamente como fallback
+        });
+};
 /**
  * Faz requisição AJAX para buscar filmes
  * @param {number} pagina - Número da página (padrão: 1)
@@ -178,52 +213,46 @@ APP.renderizarFilmes = function(filmes) {
         return;
     }
 
-    // Criar grid
     const grid = document.createElement('div');
     grid.className = 'filmes-grid';
 
-    // Adicionar cards
-    filmes.forEach((filme, index) => {
+    filmes.forEach((filme) => {
         const card = this.criarCartaoFilme(filme);
         grid.appendChild(card);
+
+        // Chamada assíncrona: busca a imagem no TMDb e atualiza o card recém-criado
+        if (filme.titulo) {
+            this.buscarEAtualizarPoster(filme.titulo, card);
+        }
     });
 
-    // Limpar e inserir
     this.elementos.conteudoPrincipal.innerHTML = '';
     this.elementos.conteudoPrincipal.appendChild(grid);
 };
 
 /**
- * Cria um card de filme
- * @param {object} filme - Dados do filme
- * @returns {HTMLElement} - Elemento do card
+ * Cria um card de filme (com placeholder inicial no poster)
  */
 APP.criarCartaoFilme = function(filme) {
     const card = document.createElement('div');
     card.className = 'filme-card';
 
-    // CORREÇÃO: filme.generos já é um Array. Removemos o .split('|') e o .trim()
-    const generos = Array.isArray(filme.generos)
-        ? filme.generos.slice(0, 3)
-        : [];
-
-    // Gerar HTML dos gêneros
+    const generos = Array.isArray(filme.generos) ? filme.generos.slice(0, 3) : [];
     const generosHTML = generos.length > 0
         ? generos.map(g => `<span class="genero-tag">${APP.sanitizarHTML(g)}</span>`).join('')
         : '<span class="genero-tag">Sem gênero</span>';
 
-    // Montar HTML do card
+    // ID único ou classe para podermos achar a imagem mais tarde e atualizar
     card.innerHTML = `
-        <div class="filme-poster">🎬</div>
+        <div class="filme-poster-container">
+            <img src="" alt="Carregando..." class="filme-poster-img" style="display:none;">
+            <div class="filme-poster-placeholder">🎬</div>
+        </div>
         <div class="filme-info">
-            <h3 class="filme-titulo">${APP.sanitizarHTML(filme.titulo || 'Título desconhecido')}</h3>
-            <div class="filme-generos">
-                ${generosHTML}
-            </div>
+            <div class="filme-generos">${generosHTML}</div>
         </div>
     `;
 
-    // Adicionar título completo no hover
     card.addEventListener('mouseenter', function() {
         const titulo = this.querySelector('.filme-titulo');
         if (titulo.offsetHeight > 50) {
