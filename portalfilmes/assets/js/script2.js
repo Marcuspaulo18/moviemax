@@ -66,6 +66,7 @@
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.style.borderTopColor = borderColors[i]; // Dá a cor do cluster na borda do card
+                card.style.marginTop = 10;
 
                 card.innerHTML = `
                     <h3>Grupo ${i}</h3>
@@ -80,14 +81,55 @@
 
                     <div class="metric-title">Maior Nota Média</div>
                     <div class="metric-value"><span class="highlight-movie">${info.maisbempontuado.titulo}</span> (Nota: ${info.maisbempontuado.valor})</div>
+
                 `;
                 grid.appendChild(card);
             }
+            const rankings = rawData.rankings;
 
-        } catch (error) {
-            console.error(error);
-            document.getElementById('loading').innerText = "Erro ao processar as métricas.";
-        }
-    }
 
-    fetchAndRender();
+           const containerMaiores = document.getElementById('rankingsMaiores');
+           containerMaiores.innerHTML = `
+               <h2> Top 10 - Maiores Estatísticas Gerais</h2>
+               <div class="rankings-grid">
+                   <div class="ranking-col">
+                       <h3> Mais Populares</h3>
+                       <ol>${rankings.maiores.mais_populares.map(f => `<li><span style="color:${borderColors[f.cluster]}">■</span> ${f.titulo} (${f.valor.toFixed(1)}p)</li>`).join('')}</ol>
+                   </div>
+                   <div class="ranking-col">
+                       <h3> Mais Vistos (Votos)</h3>
+                       <ol>${rankings.maiores.mais_vistos.map(f => `<li><span style="color:${borderColors[f.cluster]}">■</span> ${f.titulo} (${f.valor.toLocaleString()})</li>`).join('')}</ol>
+                   </div>
+                   <div class="ranking-col">
+                       <h3> Maiores Notas</h3>
+                       <ol>${rankings.maiores.mais_avaliados.map(f => `<li><span style="color:${borderColors[f.cluster]}">■</span> ${f.titulo} (${f.valor.toFixed(1)})</li>`).join('')}</ol>
+                   </div>
+               </div>
+           `;
+
+           const containerMenores = document.getElementById('rankingsMenores'); // Crie esta div no seu HTML
+           containerMenores.innerHTML = `
+               <h2> Top 10 - Menores Estatísticas Gerais</h2>
+               <div class="rankings-grid">
+                   <div class="ranking-col">
+                       <h3> Menos Populares</h3>
+                       <ol>${rankings.menores.menos_populares.map(f => `<li><span style="color:${borderColors[f.cluster]}">■</span> ${f.titulo} (${f.valor.toFixed(1)}p)</li>`).join('')}</ol>
+                   </div>
+                   <div class="ranking-col">
+                       <h3> Menos Vistos (Votos)</h3>
+                       <ol>${rankings.menores.menos_vistos.map(f => `<li><span style="color:${borderColors[f.cluster]}">■</span> ${f.titulo} (${f.valor.toLocaleString()})</li>`).join('')}</ol>
+                   </div>
+                   <div class="ranking-col">
+                       <h3> Menores Notas</h3>
+                       <ol>${rankings.menores.menos_avaliados.map(f => `<li><span style="color:${borderColors[f.cluster]}">■</span> ${f.titulo} (${f.valor.toFixed(1)})</li>`).join('')}</ol>
+                   </div>
+               </div>
+           `;
+
+       } catch (error) {
+           console.error(error);
+           document.getElementById('loading').innerText = "Erro ao processar as métricas.";
+       }
+   }
+
+   fetchAndRender();

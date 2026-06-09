@@ -4,15 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard K-means: Filmes TMDB</title>
+    <title>Dashboard Filmes TMDB</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="{% static 'css/style2.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style2.css'%}?v=1.4 ">
 </head>
 <body>
 
 <div class="container">
-    <h1>Análise de Clusters de Filmes</h1>
-    <p class="subtitle">Insights automáticos gerados por Aprendizado Não Supervisionado</p>
+    <h1>Análise de Filmes</h1>
 
     <div id="loading">Processando pipeline e métricas dos grupos...</div>
 
@@ -20,9 +19,19 @@
 
     <h2 id="titulo-insights" style="display:none; margin-top: 5px;"> Destaques Estatísticos por Grupo</h2>
     <div class="cards-grid" id="insightsGrid"></div>
+
+    <div style="display:flex; flex-direction:column;">
+        <h2 id="titulo-insights" style="display:none; margin-top: 5px;"> Destaques resumido dos melhores filmes</h2>
+        <div class="cards-grid2" id="rankingsMaiores"></div>
+    </div>
+
+    <div style="display:flex; flex-direction:column;">
+    <h2 id="titulo-insights" style="display:none; margin-top: 5px;"> Destaques resumido dos melhores filmes</h2>
+    <div class="cards-grid2" id="rankingsMenores"></div>
+    </div>
 </div>
 
-<script src="{% static 'js/script2.js' %}"></script>
+<script src="{% static 'js/script2.js'%}?v=1.5 "></script>
 
 </body>
 </html>

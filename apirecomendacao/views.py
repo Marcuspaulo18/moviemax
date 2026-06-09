@@ -200,35 +200,88 @@ class Clusterfilmes(APIView):
             kmeans = KMeans(n_clusters=4, random_state=42, n_init=10)
             cluster['cluster'] = kmeans.fit_predict(dadosescalonados)
 
+            tradutor = GoogleTranslator(source='en', target='pt')
+
             # 3. GERAÇÃO DAS MÉTRICAS POR GRUPO
             metricasclusters = {}
             for i in range(4):
                 grupo = cluster[cluster['cluster'] == i]
 
                 if not grupo.empty:
-                    # Encontra as linhas dos destaques
+
                     maispopular = grupo.loc[grupo['popularidade'].idxmax()]
                     maisvisto = grupo.loc[grupo['totalvotos'].idxmax()]
                     maisvotado = grupo.loc[grupo['notamedia'].idxmax()]
+
+                    try:
+                        titpopular = tradutor.translate(maispopular['titulo_x'])
+                        titvisto = tradutor.translate(maisvisto['titulo_x'])
+                        titvotado = tradutor.translate(maisvotado['titulo_x'])
+                    except Exception as e:
+                        # Fallback caso a API de tradução falhe
+                        titpopular = maispopular['titulo_x']
+                        titvisto = maisvisto['titulo_x']
+                        titvotado = maisvotado['titulo_x']
 
                     metricasclusters[f'grupo_{i}'] = {
                         'mediapopularidade': float(grupo['popularidade'].mean()),
                         'medianota': float(grupo['notamedia'].mean()),
                         'maispopular': {
-                            'titulo': maispopular['titulo_x'],
+                            'titulo': titpopular,
                             'valor': float(maispopular['popularidade'])
                         },
                         'maisvisto': {
-                            'titulo': maisvisto['titulo_x'],
+                            'titulo': titvisto,
                             'valor': int(maisvisto['totalvotos'])
                         },
                         'maisbempontuado': {
-                            'titulo': maisvotado['titulo_x'],
+                            'titulo': titvotado,
                             'valor': float(maisvotado['notamedia'])
                         }
                     }
 
-            # 4. Formatação do JSON Final com os dois blocos de dados
+            def extrair_top_10(df, coluna, ascendente=False):
+                """Função auxiliar para ordenar e estruturar o top 10"""
+                if ascendente:
+                    df_ordenado = df.nsmallest(10, coluna)
+                else:
+                    df_ordenado = df.nlargest(10, coluna)
+
+                tradutor = GoogleTranslator(source='en', target='pt')
+
+                lista_retorno = []
+                for _, row in df_ordenado.iterrows():
+                    titulo_original = row['titulo_x']
+
+                    try:
+                        titulo_traduzido = tradutor.translate(titulo_original)
+                        if not titulo_traduzido:
+                            titulo_traduzido = titulo_original
+                    except Exception as e:
+                        print(f"Erro ao traduzir: {e}")
+                        titulo_traduzido = titulo_original
+
+                    lista_retorno.append({
+                        'titulo': titulo_traduzido,  # Aqui entra o título traduzido
+                        'valor': float(row[coluna]) if coluna != 'totalvotos' else int(row[coluna]),
+                        'cluster': int(row['cluster'])
+                    })
+                return lista_retorno
+
+            rankings_gerais = {
+                'maiores': {
+                    'mais_populares': extrair_top_10(cluster, 'popularidade'),
+                    'mais_vistos': extrair_top_10(cluster, 'totalvotos'),
+                    'mais_avaliados': extrair_top_10(cluster, 'notamedia')
+                },
+                'menores': {
+                    'menos_populares': extrair_top_10(cluster, 'popularidade', ascendente=True),
+                    'menos_vistos': extrair_top_10(cluster, 'totalvotos', ascendente=True),
+                    'menos_avaliados': extrair_top_10(cluster, 'notamedia', ascendente=True)
+                }
+            }
+
+            # 4. Formatação do JSON Final com os TRÊS blocos de dados
             filmes_lista = []
             for _, row in cluster.iterrows():
                 filmes_lista.append({
@@ -241,7 +294,8 @@ class Clusterfilmes(APIView):
 
             resposta_final = {
                 'filmes': filmes_lista,
-                'insights': metricasclusters
+                'insights': metricasclusters,
+                'rankings': rankings_gerais  # <-- Novo bloco enviado ao Front-end
             }
 
             return Response(resposta_final, status=status.HTTP_200_OK)
