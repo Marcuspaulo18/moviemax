@@ -5,4 +5,5 @@ from portalfilmes import views
 
 urlpatterns = [
     path('', views.index, name='index'),
+    path('dashboard.html',views.dashboard,name='dashboard')
 ]

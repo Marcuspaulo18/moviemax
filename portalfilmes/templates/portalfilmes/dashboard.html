@@ -1,0 +1,28 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard K-means: Filmes TMDB</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{% static 'css/style2.css' %}">
+</head>
+<body>
+
+<div class="container">
+    <h1>Análise de Clusters de Filmes</h1>
+    <p class="subtitle">Insights automáticos gerados por Aprendizado Não Supervisionado</p>
+
+    <div id="loading">Processando pipeline e métricas dos grupos...</div>
+
+    <canvas id="clusterChart" style="display:none;"></canvas>
+
+    <h2 id="titulo-insights" style="display:none; margin-top: 5px;"> Destaques Estatísticos por Grupo</h2>
+    <div class="cards-grid" id="insightsGrid"></div>
+</div>
+
+<script src="{% static 'js/script2.js' %}"></script>
+
+</body>
+</html>

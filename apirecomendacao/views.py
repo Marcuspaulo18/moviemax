@@ -5,6 +5,9 @@ from deep_translator import GoogleTranslator
 import kagglehub
 import os
 import ast
+from rest_framework import status
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
 
 destino = kagglehub.dataset_download("tmdb/tmdb-movie-metadata")
 
@@ -180,3 +183,68 @@ class ListaFilmes(APIView):
             "listafilmes": listapararetorno
         })
 
+
+class Clusterfilmes(APIView):
+    def get(self, request, format=None):
+        try:
+
+            datasetunico = pd.merge(dadosfilme, dadosnota, on='idefilme')
+            minimo = datasetunico['totalvotos'].quantile(0.25)
+            cluster = datasetunico.loc[datasetunico['totalvotos'] >= minimo].copy()
+            cluster = cluster.dropna(subset=['popularidade', 'notamedia'])
+            cluster = cluster[cluster['popularidade'] <= 300]
+
+            # 2. K-Means
+            scaler = StandardScaler()
+            dadosescalonados = scaler.fit_transform(cluster[['popularidade', 'notamedia']])
+            kmeans = KMeans(n_clusters=4, random_state=42, n_init=10)
+            cluster['cluster'] = kmeans.fit_predict(dadosescalonados)
+
+            # 3. GERAÇÃO DAS MÉTRICAS POR GRUPO
+            metricasclusters = {}
+            for i in range(4):
+                grupo = cluster[cluster['cluster'] == i]
+
+                if not grupo.empty:
+                    # Encontra as linhas dos destaques
+                    maispopular = grupo.loc[grupo['popularidade'].idxmax()]
+                    maisvisto = grupo.loc[grupo['totalvotos'].idxmax()]
+                    maisvotado = grupo.loc[grupo['notamedia'].idxmax()]
+
+                    metricasclusters[f'grupo_{i}'] = {
+                        'mediapopularidade': float(grupo['popularidade'].mean()),
+                        'medianota': float(grupo['notamedia'].mean()),
+                        'maispopular': {
+                            'titulo': maispopular['titulo_x'],
+                            'valor': float(maispopular['popularidade'])
+                        },
+                        'maisvisto': {
+                            'titulo': maisvisto['titulo_x'],
+                            'valor': int(maisvisto['totalvotos'])
+                        },
+                        'maisbempontuado': {
+                            'titulo': maisvotado['titulo_x'],
+                            'valor': float(maisvotado['notamedia'])
+                        }
+                    }
+
+            # 4. Formatação do JSON Final com os dois blocos de dados
+            filmes_lista = []
+            for _, row in cluster.iterrows():
+                filmes_lista.append({
+                    'idefilme': int(row['idefilme']),
+                    'titulo': row['titulo_x'],
+                    'popularidade': float(row['popularidade']),
+                    'notamedia': float(row['notamedia']),
+                    'cluster': int(row['cluster'])
+                })
+
+            resposta_final = {
+                'filmes': filmes_lista,
+                'insights': metricasclusters
+            }
+
+            return Response(resposta_final, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
