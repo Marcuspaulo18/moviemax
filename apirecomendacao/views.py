@@ -7,6 +7,8 @@ import os
 import ast
 from rest_framework import status
 from sklearn.cluster import KMeans
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import StandardScaler
 
 destino = kagglehub.dataset_download("tmdb/tmdb-movie-metadata")
@@ -299,6 +301,140 @@ class Clusterfilmes(APIView):
             }
 
             return Response(resposta_final, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+import ast
+import pandas as pd
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+
+class DetalheFilme(APIView):
+    _base_processada = False
+    _cluster_df = None
+    _similaridade = None
+    _indices = None
+
+    @classmethod
+    def _inicializar_motor_ia(cls):
+        if cls._base_processada:
+            return
+
+        datasetunico = pd.merge(dadosfilme, dadosnota, on='idefilme')
+        minimo = datasetunico['totalvotos'].quantile(0.25)
+
+        df_filtrado = datasetunico.loc[datasetunico['totalvotos'] >= minimo].copy()
+        df_filtrado = df_filtrado.dropna(subset=['popularidade', 'notamedia'])
+        cls._cluster_df = df_filtrado[df_filtrado['popularidade'] <= 300].copy()
+
+        textos_para_vetorizar = []
+
+        for idx, row in cls._cluster_df.iterrows():
+            # Captura a sinopse
+            resumo = str(row['resumo']) if pd.notna(row['resumo']) else ""
+
+            atores = []
+            try:
+                lista_elenco = ast.literal_eval(row['elenco'])
+                atores = [actor['name'].replace(" ", "").lower() for actor in lista_elenco[:3]]
+            except:
+                pass
+
+            diretor = ""
+            try:
+                lista_equipe = ast.literal_eval(row['equipe'])
+                dir_nome = next((m['name'] for m in lista_equipe if m['job'] == 'Director'), "")
+                diretor = dir_nome.replace(" ", "").lower()
+            except:
+                pass
+
+            sopa_conteudo = f"{resumo} {' '.join(atores)} {diretor}"
+            textos_para_vetorizar.append(sopa_conteudo)
+
+        cls._cluster_df['sopa_metadados'] = textos_para_vetorizar
+
+        vetor = TfidfVectorizer(stop_words='english')
+        matrixvetorial = vetor.fit_transform(cls._cluster_df['sopa_metadados'])
+        cls._similaridade = cosine_similarity(matrixvetorial, matrixvetorial)
+
+
+        cls._indices = pd.Series(cls._cluster_df.index, index=cls._cluster_df['idefilme']).drop_duplicates()
+        cls._base_processada = True
+
+    def get(self, request, idefilme=None):
+        try:
+            self._inicializar_motor_ia()
+
+            if idefilme is None:
+                idefilme = request.GET.get('idefilme')
+
+            if not idefilme:
+                return Response({"error": "O parâmetro 'idefilme' é obrigatório."}, status=status.HTTP_400_BAD_REQUEST)
+
+            idefilme = int(idefilme)
+            if idefilme not in self._indices:
+                return Response(
+                    {"error": f"Filme com ID {idefilme} não atende aos critérios do Cluster."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            idx_original = self._indices[idefilme]
+            posicao_real = self._cluster_df.index.get_loc(idx_original)
+            filme_alvo = self._cluster_df.iloc[posicao_real]
+
+            # Parseamento padrão para exibição visual no front-end
+            atores_str = "Não informado"
+            try:
+                lista_elenco = ast.literal_eval(filme_alvo['elenco'])
+                atores_str = ", ".join([ator['name'] for actor in lista_elenco[:3]])
+            except:
+                pass
+
+            diretor_str = "Não informado"
+            try:
+                lista_equipe = ast.literal_eval(filme_alvo['equipe'])
+                diretor_str = next((m['name'] for m in lista_equipe if m['job'] == 'Director'), "Não informado")
+            except:
+                pass
+
+            try:
+                lista_generos = ast.literal_eval(filme_alvo['generos'])
+                generos_limpos = ", ".join([g['name'] for g in lista_generos])
+            except:
+                generos_limpos = filme_alvo['generos']
+
+            # Processa o Top 5 Filmes Similares calculados com base na Sopa
+            scores = list(enumerate(self._similaridade[posicao_real]))
+            scores = sorted(scores, key=lambda x: x[1], reverse=True)
+            scores_recomendados = scores[1:6]
+
+            recomendados = []
+            for i, score in scores_recomendados:
+                row = self._cluster_df.iloc[i]
+                recomendados.append({
+                    'idefilme': int(row['idefilme']),
+                    'titulo': row['titulo_x'],
+                    'notamedia': float(row['notamedia'])
+                })
+
+            return Response({
+                'idefilme': int(filme_alvo['idefilme']),
+                'titulo': filme_alvo['titulo_x'],
+                'resumo': filme_alvo['resumo'],
+                'notamedia': float(filme_alvo['notamedia']),
+                'datalancamento': str(filme_alvo['datalancamento']),
+                'tempoduracao': f"{int(filme_alvo['tempoduracao'])} minutos" if filme_alvo['tempoduracao'] else "---",
+                'generos': generos_limpos,
+                'elenco': elenco_formatado if 'elenco_formatado' in locals() else atores_str,
+                'diretor': diretor_str,
+                'recomendados': recomendados
+            }, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -235,29 +235,31 @@ APP.renderizarFilmes = function(filmes) {
  */
 APP.criarCartaoFilme = function(filme) {
     const card = document.createElement('div');
+    card.style.cursor = 'pointer';
     card.className = 'filme-card';
+
+    // 1. Guarda o idefilme no elemento para fácil acesso caso precise depois
+    card.setAttribute('data-id', filme.idefilme);
 
     const generos = Array.isArray(filme.generos) ? filme.generos.slice(0, 3) : [];
     const generosHTML = generos.length > 0
         ? generos.map(g => `<span class="genero-tag">${APP.sanitizarHTML(g)}</span>`).join('')
         : '<span class="genero-tag">Sem gênero</span>';
 
-    // ID único ou classe para podermos achar a imagem mais tarde e atualizar
+    // Se você quiser que o título apareça no card além do poster, adicione a classe correspondente
     card.innerHTML = `
         <div class="filme-poster-container">
             <img src="" alt="Carregando..." class="filme-poster-img" style="display:none;">
             <div class="filme-poster-placeholder">🎬</div>
         </div>
         <div class="filme-info">
+            <div class="filme-titulo" style="font-weight: bold; margin-top: 5px;">${APP.sanitizarHTML(filme.titulo)}</div>
             <div class="filme-generos">${generosHTML}</div>
         </div>
     `;
 
-    card.addEventListener('mouseenter', function() {
-        const titulo = this.querySelector('.filme-titulo');
-        if (titulo.offsetHeight > 50) {
-            this.setAttribute('title', filme.titulo);
-        }
+    card.addEventListener('click', function() {
+        window.location.href = `http://127.0.0.1:8000/portalfilmes/filmes.html?idefilme=${filme.idefilme}`;
     });
 
     return card;

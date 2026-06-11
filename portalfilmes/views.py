@@ -5,3 +5,6 @@ def index(request):
 
 def dashboard(request):
     return render(request,'portalfilmes/dashboard.html')
+
+def filmes(request):
+    return render(request,'portalfilmes/filmes.html')
