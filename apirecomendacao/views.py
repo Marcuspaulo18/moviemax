@@ -22,7 +22,7 @@ pd.set_option('display.max_columns', 20)
 dadosfilme = pd.read_csv(diretoriofilme)
 dadosnota = pd.read_csv(diretoriocredito)
 
-dadosfilme = dadosfilme.infer_objects(copy=False) # Ajuda o pandas a entender os tipos de dados melhor
+dadosfilme = dadosfilme.infer_objects(copy=False)
 dadosfilme = dadosfilme.fillna("")
 
 dadosfilme = dadosfilme.fillna({
@@ -33,7 +33,6 @@ dadosfilme = dadosfilme.fillna({
     'release_date': ''
 })
 
-# Mantido o padrão tudo junto e sem acentos
 dadosfilme = dadosfilme.rename(columns={
     'id': 'idefilme',
     'title': 'titulo',
@@ -122,12 +121,10 @@ class ListaFilmes(APIView):
         itensporpagina = 24
         total_itens = len(dadosfiltrados)
 
-        # Calcula o total de páginas real baseado nos itens filtrados
         total_paginas = (total_itens + itensporpagina - 1) // itensporpagina
         if total_paginas == 0:
             total_paginas = 1
 
-        # 3. Validação e Captura da Página Atual
         try:
             paginaatual = int(request.query_params.get('pagina', 1))
             if paginaatual < 1:
@@ -196,7 +193,6 @@ class Clusterfilmes(APIView):
             cluster = cluster.dropna(subset=['popularidade', 'notamedia'])
             cluster = cluster[cluster['popularidade'] <= 300]
 
-            # 2. K-Means
             scaler = StandardScaler()
             dadosescalonados = scaler.fit_transform(cluster[['popularidade', 'notamedia']])
             kmeans = KMeans(n_clusters=4, random_state=42, n_init=10)
@@ -204,7 +200,6 @@ class Clusterfilmes(APIView):
 
             tradutor = GoogleTranslator(source='en', target='pt')
 
-            # 3. GERAÇÃO DAS MÉTRICAS POR GRUPO
             metricasclusters = {}
             for i in range(4):
                 grupo = cluster[cluster['cluster'] == i]
@@ -243,7 +238,7 @@ class Clusterfilmes(APIView):
                     }
 
             def extrair_top_10(df, coluna, ascendente=False):
-                """Função auxiliar para ordenar e estruturar o top 10"""
+
                 if ascendente:
                     df_ordenado = df.nsmallest(10, coluna)
                 else:
@@ -264,7 +259,7 @@ class Clusterfilmes(APIView):
                         titulo_traduzido = titulo_original
 
                     lista_retorno.append({
-                        'titulo': titulo_traduzido,  # Aqui entra o título traduzido
+                        'titulo': titulo_traduzido,
                         'valor': float(row[coluna]) if coluna != 'totalvotos' else int(row[coluna]),
                         'cluster': int(row['cluster'])
                     })
@@ -283,7 +278,6 @@ class Clusterfilmes(APIView):
                 }
             }
 
-            # 4. Formatação do JSON Final com os TRÊS blocos de dados
             filmes_lista = []
             for _, row in cluster.iterrows():
                 filmes_lista.append({
@@ -297,7 +291,7 @@ class Clusterfilmes(APIView):
             resposta_final = {
                 'filmes': filmes_lista,
                 'insights': metricasclusters,
-                'rankings': rankings_gerais  # <-- Novo bloco enviado ao Front-end
+                'rankings': rankings_gerais
             }
 
             return Response(resposta_final, status=status.HTTP_200_OK)
@@ -305,14 +299,6 @@ class Clusterfilmes(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-import ast
-import pandas as pd
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 
 
 class DetalheFilme(APIView):
@@ -322,7 +308,7 @@ class DetalheFilme(APIView):
     _indices = None
 
     @classmethod
-    def _inicializar_motor_ia(cls):
+    def inicializador(cls):
         if cls._base_processada:
             return
 
@@ -336,7 +322,7 @@ class DetalheFilme(APIView):
         textos_para_vetorizar = []
 
         for idx, row in cls._cluster_df.iterrows():
-            # Captura a sinopse
+
             resumo = str(row['resumo']) if pd.notna(row['resumo']) else ""
 
             atores = []
@@ -369,7 +355,7 @@ class DetalheFilme(APIView):
 
     def get(self, request, idefilme=None):
         try:
-            self._inicializar_motor_ia()
+            self.inicializador()
 
             if idefilme is None:
                 idefilme = request.GET.get('idefilme')
@@ -388,11 +374,10 @@ class DetalheFilme(APIView):
             posicao_real = self._cluster_df.index.get_loc(idx_original)
             filme_alvo = self._cluster_df.iloc[posicao_real]
 
-            # Parseamento padrão para exibição visual no front-end
             atores_str = "Não informado"
             try:
                 lista_elenco = ast.literal_eval(filme_alvo['elenco'])
-                atores_str = ", ".join([ator['name'] for actor in lista_elenco[:3]])
+                atores_str = ", ".join([actor['name'] for actor in lista_elenco[:3]])
             except:
                 pass
 
@@ -409,7 +394,6 @@ class DetalheFilme(APIView):
             except:
                 generos_limpos = filme_alvo['generos']
 
-            # Processa o Top 5 Filmes Similares calculados com base na Sopa
             scores = list(enumerate(self._similaridade[posicao_real]))
             scores = sorted(scores, key=lambda x: x[1], reverse=True)
             scores_recomendados = scores[1:6]
@@ -431,7 +415,7 @@ class DetalheFilme(APIView):
                 'datalancamento': str(filme_alvo['datalancamento']),
                 'tempoduracao': f"{int(filme_alvo['tempoduracao'])} minutos" if filme_alvo['tempoduracao'] else "---",
                 'generos': generos_limpos,
-                'elenco': elenco_formatado if 'elenco_formatado' in locals() else atores_str,
+                'elenco': atores_str if 'elenco_formatado' in locals() else atores_str,
                 'diretor': diretor_str,
                 'recomendados': recomendados
             }, status=status.HTTP_200_OK)

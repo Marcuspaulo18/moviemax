@@ -1,6 +1,3 @@
-/* ===================================
-   POBREFLIX - ESTILOS GLOBAIS
-   =================================== */
 
 * {
     margin: 0;
@@ -9,7 +6,6 @@
 }
 
 :root {
-    /* Cores */
     --primary: #e50914;
     --primary-dark: #b20710;
     --bg-dark: #141414;
@@ -19,11 +15,9 @@
     --accent: #564d4d;
     --border: #404040;
 
-    /* Tipografia */
     --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     --font-title: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 
-    /* Transições */
     --transition-fast: 0.2s ease;
     --transition-normal: 0.4s ease;
 }
@@ -41,9 +35,6 @@ body {
     line-height: 1.6;
 }
 
-/* ===================================
-   HEADER E NAVEGAÇÃO
-   =================================== */
 
 .header {
     background: linear-gradient(180deg, rgba(20, 20, 20, 0.95) 0%, rgba(20, 20, 20, 0) 100%);
@@ -61,21 +52,12 @@ body {
     margin-bottom: 20px;
     letter-spacing: -1px;
     font-family: var(--font-title);
-    /*transition: transform var(--transition-fast);*/
 }
-/*
 
-.logo:hover {
-    transform: scale(1.05);
-}
-*/
 .logo span {
     color: var(--primary);
 }
 
-/* ===================================
-   FILTROS
-   =================================== */
 
 .filtros-container {
     display: flex;
@@ -124,10 +106,6 @@ body {
     background: rgba(229, 9, 20, 0.05);
 }
 
-/* ===================================
-   BOTÕES
-   =================================== */
-
 .btn-pesquisar,
 .btn-limpar,
 .btn-pagina {
@@ -169,19 +147,12 @@ body {
     background: rgba(255, 255, 255, 0.05);
 }
 
-/* ===================================
-   CONTAINER PRINCIPAL
-   =================================== */
 
 .container {
     max-width: 1400px;
     margin: 0 auto;
     padding: 40px;
 }
-
-/* ===================================
-   STATUS E INFORMAÇÕES
-   =================================== */
 
 .status-info {
     margin: 20px 0;
@@ -214,9 +185,6 @@ body {
     font-weight: 700;
 }
 
-/* ===================================
-   ESTADOS DE CARREGAMENTO
-   =================================== */
 
 .carregando {
     text-align: center;
@@ -253,9 +221,6 @@ body {
     }
 }
 
-/* ===================================
-   GRID DE FILMES
-   =================================== */
 
 .filmes-grid {
     display: grid;
@@ -275,10 +240,6 @@ body {
         transform: translateY(0);
     }
 }
-
-/* ===================================
-   CARDS DE FILME
-   =================================== */
 
 .filme-card {
     background: var(--bg-secondary);
@@ -386,9 +347,6 @@ body {
     border-radius: 8px;
 }
 
-/* ===================================
-   PAGINAÇÃO
-   =================================== */
 
 .paginacao-container {
     display: flex;
@@ -400,7 +358,16 @@ body {
     border-top: 1px solid var(--border);
     animation: slideUp 0.4s ease;
 }
-
+.btn-analise {
+    padding:6px;
+    border:3px solid white;
+    border-radius:2px;
+    background-color: var(--text-primary);
+    color: var(--primary);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
 @keyframes slideUp {
     from {
         opacity: 0;
@@ -448,10 +415,6 @@ body {
     white-space: nowrap;
 }
 
-/* ===================================
-   ESTADO VAZIO
-   =================================== */
-
 .vazio {
     text-align: center;
     padding: 60px 20px;
@@ -481,10 +444,6 @@ body {
     font-weight: 600;
     color: var(--text-primary);
 }
-
-/* ===================================
-   RESPONSIVO - TABLET
-   =================================== */
 
 @media (max-width: 1024px) {
     .container {
@@ -534,10 +493,6 @@ body {
         flex-wrap: wrap;
     }
 }
-
-/* ===================================
-   RESPONSIVO - MOBILE
-   =================================== */
 
 @media (max-width: 480px) {
     .header {
@@ -631,10 +586,6 @@ body {
         font-size: 16px;
     }
 }
-
-/* ===================================
-   UTILITIES
-   =================================== */
 
 .hidden {
     display: none !important;

@@ -1,8 +1,7 @@
 
 const APP = {
-    API_URL: '/apirecomenda/filmes/',
+    APIURL: '/apirecomenda/filmes/',
 
-    // Estado da aplicação
     state: {
         paginaAtual: 1,
         totalPaginas: 1,
@@ -11,10 +10,8 @@ const APP = {
         carregando: false
     },
 
-    // Elementos do DOM
     elementos: {},
 
-    // Inicializar a aplicação
     init: function() {
         console.log('Inicializando moviemax...');
         this.cacheDOMElements();
@@ -22,7 +19,6 @@ const APP = {
         this.buscarFilmes(1);
     },
 
-    // Cache dos elementos DOM
     cacheDOMElements: function() {
         this.elementos = {
             filtroGenero: document.getElementById('filtroGenero'),
@@ -38,7 +34,6 @@ const APP = {
         };
     },
 
-    // Adicionar event listeners
     adicionarEventListeners: function() {
         // Botões principais
         this.elementos.btnPesquisar.addEventListener('click', () => this.executarPesquisa());
@@ -88,31 +83,25 @@ APP.buscarEAtualizarPoster = function(titulo, cardElement) {
                 if (imgElement) {
                     imgElement.src = urlImagemFinal;
                     imgElement.alt = titulo;
-                    imgElement.style.display = 'block'; // Mostra a imagem real
-                    if (placeholder) placeholder.style.display = 'none'; // Esconde o emoji de claquete
+                    imgElement.style.display = 'block';
+                    if (placeholder) placeholder.style.display = 'none';
                 }
             }
         })
         .catch(erro => {
             console.warn(`Não foi possível carregar o pôster para: ${titulo}`, erro);
-            // Se der erro, o card continua exibindo o emoji de claquete perfeitamente como fallback
         });
 };
-/**
- * Faz requisição AJAX para buscar filmes
- * @param {number} pagina - Número da página (padrão: 1)
- */
+
 APP.buscarFilmes = function(pagina = 1) {
     if (this.state.carregando) return;
 
     this.state.carregando = true;
     this.state.paginaAtual = pagina;
 
-    // Mostrar loading
     this.elementos.conteudoPrincipal.innerHTML = this.gerarHTMLCarregamento();
 
-    // Construir URL com parâmetros
-    let url = `${this.API_URL}?pagina=${pagina}`;
+    let url = `${this.APIURL}?pagina=${pagina}`;
 
     if (this.state.filtroGeneroAtual) {
         url += `&genero=${encodeURIComponent(this.state.filtroGeneroAtual)}`;
@@ -124,14 +113,13 @@ APP.buscarFilmes = function(pagina = 1) {
 
     console.log('Buscando filmes:', url);
 
-    // Fazer requisição AJAX com Fetch API
     fetch(url, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         },
-        credentials: 'same-origin' // Para incluir cookies se necessário
+        credentials: 'same-origin'
     })
     .then(response => {
         if (!response.ok) {
@@ -143,7 +131,6 @@ APP.buscarFilmes = function(pagina = 1) {
         console.log('Dados recebidos:', dados);
         this.state.carregando = false;
 
-        // CORREÇÃO: Garante que os valores sejam tratados estritamente como números
         this.state.totalPaginas = parseInt(dados.totalpaginas, 10) || 1;
         this.state.paginaAtual = parseInt(dados.paginaatual, 10) || 1;
 
@@ -160,18 +147,12 @@ APP.buscarFilmes = function(pagina = 1) {
     });
 };
 
-/**
- * Executa a pesquisa com os filtros atuais
- */
 APP.executarPesquisa = function() {
     this.state.filtroGeneroAtual = this.elementos.filtroGenero.value.trim();
     this.state.filtroTituloAtual = this.elementos.filtroTitulo.value.trim();
     this.buscarFilmes(1);
 };
 
-/**
- * Limpa todos os filtros
- */
 APP.limparFiltros = function() {
     this.elementos.filtroGenero.value = '';
     this.elementos.filtroTitulo.value = '';
@@ -181,32 +162,19 @@ APP.limparFiltros = function() {
     this.elementos.filtroGenero.focus();
 };
 
-/**
- * Vai para a página anterior
- */
 APP.irParaPaginaAnterior = function() {
     if (this.state.paginaAtual > 1) {
         this.buscarFilmes(this.state.paginaAtual - 1);
     }
 };
 
-/**
- * Vai para a próxima página
- */
+
 APP.irParaProximaPagina = function() {
     if (this.state.paginaAtual < this.state.totalPaginas) {
         this.buscarFilmes(this.state.paginaAtual + 1);
     }
 };
 
-// ===================================
-// MÉTODOS DE RENDERIZAÇÃO
-// ===================================
-
-/**
- * Renderiza os filmes no grid
- * @param {array} filmes - Array de filmes
- */
 APP.renderizarFilmes = function(filmes) {
     if (!filmes || filmes.length === 0) {
         this.mostrarVazio();
@@ -230,15 +198,12 @@ APP.renderizarFilmes = function(filmes) {
     this.elementos.conteudoPrincipal.appendChild(grid);
 };
 
-/**
- * Cria um card de filme (com placeholder inicial no poster)
- */
+
 APP.criarCartaoFilme = function(filme) {
     const card = document.createElement('div');
     card.style.cursor = 'pointer';
     card.className = 'filme-card';
 
-    // 1. Guarda o idefilme no elemento para fácil acesso caso precise depois
     card.setAttribute('data-id', filme.idefilme);
 
     const generos = Array.isArray(filme.generos) ? filme.generos.slice(0, 3) : [];
@@ -246,7 +211,6 @@ APP.criarCartaoFilme = function(filme) {
         ? generos.map(g => `<span class="genero-tag">${APP.sanitizarHTML(g)}</span>`).join('')
         : '<span class="genero-tag">Sem gênero</span>';
 
-    // Se você quiser que o título apareça no card além do poster, adicione a classe correspondente
     card.innerHTML = `
         <div class="filme-poster-container">
             <img src="" alt="Carregando..." class="filme-poster-img" style="display:none;">
@@ -265,10 +229,6 @@ APP.criarCartaoFilme = function(filme) {
     return card;
 };
 
-/**
- * Atualiza o status de filmes encontrados
- * @param {object} dados - Dados da resposta
- */
 APP.atualizarStatus = function(dados) {
     const totalFilmes = dados.itensencontrados;
     const paginaAtualInfo = dados.paginaatual;
@@ -296,19 +256,13 @@ APP.atualizarStatus = function(dados) {
     `;
 };
 
-/**
- * Atualiza os controles de paginação
- * @param {object} dados - Dados da resposta
- */
 APP.atualizarPaginacao = function(dados) {
-    // Força a conversão para número inteiro base 10
     const paginaAtualInfo = parseInt(dados.paginaatual, 10);
     const totalPaginasInfo = parseInt(dados.totalpaginas, 10);
 
     this.elementos.infoPaginacao.textContent =
         `Página ${paginaAtualInfo} de ${totalPaginasInfo}`;
 
-    // Agora a comparação matemática funcionará perfeitamente
     this.elementos.btnAnterior.disabled = (paginaAtualInfo <= 1);
     this.elementos.btnProximo.disabled = (paginaAtualInfo >= totalPaginasInfo);
 
@@ -319,13 +273,7 @@ APP.atualizarPaginacao = function(dados) {
     }
 };
 
-// ===================================
-// MÉTODOS DE ESTADOS ESPECIAIS
-// ===================================
 
-/**
- * Mostra estado de carregamento
- */
 APP.gerarHTMLCarregamento = function() {
     return `
         <div class="carregando">
@@ -335,9 +283,6 @@ APP.gerarHTMLCarregamento = function() {
     `;
 };
 
-/**
- * Mostra estado vazio (sem resultados)
- */
 APP.mostrarVazio = function() {
     const html = `
         <div class="vazio">
@@ -349,10 +294,6 @@ APP.mostrarVazio = function() {
     this.elementos.conteudoPrincipal.innerHTML = html;
 };
 
-/**
- * Mostra erro
- * @param {string} mensagem - Mensagem de erro
- */
 APP.mostrarErro = function(mensagem) {
     const html = `
         <div class="vazio">
@@ -364,26 +305,13 @@ APP.mostrarErro = function(mensagem) {
     this.elementos.conteudoPrincipal.innerHTML = html;
 };
 
-// ===================================
-// UTILITÁRIOS
-// ===================================
 
-/**
- * Sanitiza HTML para evitar XSS
- * @param {string} texto - Texto a sanitizar
- * @returns {string} - Texto sanitizado
- */
 APP.sanitizarHTML = function(texto) {
     const div = document.createElement('div');
     div.textContent = texto;
     return div.innerHTML;
 };
 
-// ===================================
-// INICIALIZAÇÃO
-// ===================================
-
-// Iniciar quando o DOM estiver pronto
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         APP.init();
