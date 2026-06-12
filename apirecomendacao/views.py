@@ -218,11 +218,11 @@ class Clusterfilmes(APIView):
                 maisvisto = grupo.loc[grupo['totalvotos'].idxmax()]
                 maisvotado = grupo.loc[grupo['notamedia'].idxmax()]
 
-                metricasclusters[f'grupo_{i+1}'] = {
+                metricasclusters[f'grupo_{i}'] = {
                     'mediapopularidade': float(grupo['popularidade'].mean()),
                     'medianota': float(grupo['notamedia'].mean()),
                     'maispopular': {
-                        'titulo': maispopular['titulo_x'],  # Sem tradutor lento aqui
+                        'titulo': maispopular['titulo_x'], 
                         'valor': float(maispopular['popularidade'])
                     },
                     'maisvisto': {
@@ -271,7 +271,7 @@ class Clusterfilmes(APIView):
                 'titulo': row['titulo_x'],
                 'popularidade': float(row['popularidade']),
                 'notamedia': float(row['notamedia']),
-                'cluster': int(row['cluster']) + 1
+                'cluster': int(row['cluster'])
             })
         cls._filmes_lista = filmes_lista
 
