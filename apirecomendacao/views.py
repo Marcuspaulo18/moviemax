@@ -184,122 +184,113 @@ class ListaFilmes(APIView):
 
 
 class Clusterfilmes(APIView):
-    def get(self, request, format=None):
-        try:
+    _base_processada = False
+    _cluster = None
+    _insights = None
+    _rankings = None
+    _filmes_lista = None
 
-            datasetunico = pd.merge(dadosfilme, dadosnota, on='idefilme')
-            minimo = datasetunico['totalvotos'].quantile(0.25)
-            cluster = datasetunico.loc[datasetunico['totalvotos'] >= minimo].copy()
-            cluster = cluster.dropna(subset=['popularidade', 'notamedia'])
-            cluster = cluster[cluster['popularidade'] <= 300]
+    @classmethod
+    def inicializador(cls):
+        if cls._base_processada:
+            return
 
-            scaler = StandardScaler()
-            dadosescalonados = scaler.fit_transform(cluster[['popularidade', 'notamedia']])
-            kmeans = KMeans(n_clusters=4, random_state=42, n_init=10)
-            cluster['cluster'] = kmeans.fit_predict(dadosescalonados)
+        datasetunico = pd.merge(dadosfilme, dadosnota, on='idefilme')
+        minimo = datasetunico['totalvotos'].quantile(0.25)
 
-            tradutor = GoogleTranslator(source='en', target='pt')
+        cluster_df = datasetunico.loc[datasetunico['totalvotos'] >= minimo].copy()
+        cluster_df = cluster_df.dropna(subset=['popularidade', 'notamedia'])
+        cluster_df = cluster_df[cluster_df['popularidade'] <= 300].copy()
 
-            metricasclusters = {}
-            for i in range(4):
-                grupo = cluster[cluster['cluster'] == i]
+        scaler = StandardScaler()
+        dadosescalonados = scaler.fit_transform(cluster_df[['popularidade', 'notamedia']])
+        kmeans = KMeans(n_clusters=4, random_state=42, n_init=10)
+        cluster_df['cluster'] = kmeans.fit_predict(dadosescalonados)
 
-                if not grupo.empty:
+        cls._cluster = cluster_df
 
-                    maispopular = grupo.loc[grupo['popularidade'].idxmax()]
-                    maisvisto = grupo.loc[grupo['totalvotos'].idxmax()]
-                    maisvotado = grupo.loc[grupo['notamedia'].idxmax()]
 
-                    try:
-                        titpopular = tradutor.translate(maispopular['titulo_x'])
-                        titvisto = tradutor.translate(maisvisto['titulo_x'])
-                        titvotado = tradutor.translate(maisvotado['titulo_x'])
-                    except Exception as e:
-                        # Fallback caso a API de tradução falhe
-                        titpopular = maispopular['titulo_x']
-                        titvisto = maisvisto['titulo_x']
-                        titvotado = maisvotado['titulo_x']
+        metricasclusters = {}
+        for i in range(4):
+            grupo = cluster_df[cluster_df['cluster'] == i]
+            if not grupo.empty:
+                maispopular = grupo.loc[grupo['popularidade'].idxmax()]
+                maisvisto = grupo.loc[grupo['totalvotos'].idxmax()]
+                maisvotado = grupo.loc[grupo['notamedia'].idxmax()]
 
-                    metricasclusters[f'grupo_{i}'] = {
-                        'mediapopularidade': float(grupo['popularidade'].mean()),
-                        'medianota': float(grupo['notamedia'].mean()),
-                        'maispopular': {
-                            'titulo': titpopular,
-                            'valor': float(maispopular['popularidade'])
-                        },
-                        'maisvisto': {
-                            'titulo': titvisto,
-                            'valor': int(maisvisto['totalvotos'])
-                        },
-                        'maisbempontuado': {
-                            'titulo': titvotado,
-                            'valor': float(maisvotado['notamedia'])
-                        }
+                metricasclusters[f'grupo_{i+1}'] = {
+                    'mediapopularidade': float(grupo['popularidade'].mean()),
+                    'medianota': float(grupo['notamedia'].mean()),
+                    'maispopular': {
+                        'titulo': maispopular['titulo_x'],  # Sem tradutor lento aqui
+                        'valor': float(maispopular['popularidade'])
+                    },
+                    'maisvisto': {
+                        'titulo': maisvisto['titulo_x'],
+                        'valor': int(maisvisto['totalvotos'])
+                    },
+                    'maisbempontuado': {
+                        'titulo': maisvotado['titulo_x'],
+                        'valor': float(maisvotado['notamedia'])
                     }
-
-            def extrair_top_10(df, coluna, ascendente=False):
-
-                if ascendente:
-                    df_ordenado = df.nsmallest(10, coluna)
-                else:
-                    df_ordenado = df.nlargest(10, coluna)
-
-                tradutor = GoogleTranslator(source='en', target='pt')
-
-                lista_retorno = []
-                for _, row in df_ordenado.iterrows():
-                    titulo_original = row['titulo_x']
-
-                    try:
-                        titulo_traduzido = tradutor.translate(titulo_original)
-                        if not titulo_traduzido:
-                            titulo_traduzido = titulo_original
-                    except Exception as e:
-                        print(f"Erro ao traduzir: {e}")
-                        titulo_traduzido = titulo_original
-
-                    lista_retorno.append({
-                        'titulo': titulo_traduzido,
-                        'valor': float(row[coluna]) if coluna != 'totalvotos' else int(row[coluna]),
-                        'cluster': int(row['cluster'])
-                    })
-                return lista_retorno
-
-            rankings_gerais = {
-                'maiores': {
-                    'mais_populares': extrair_top_10(cluster, 'popularidade'),
-                    'mais_vistos': extrair_top_10(cluster, 'totalvotos'),
-                    'mais_avaliados': extrair_top_10(cluster, 'notamedia')
-                },
-                'menores': {
-                    'menos_populares': extrair_top_10(cluster, 'popularidade', ascendente=True),
-                    'menos_vistos': extrair_top_10(cluster, 'totalvotos', ascendente=True),
-                    'menos_avaliados': extrair_top_10(cluster, 'notamedia', ascendente=True)
                 }
-            }
+        cls._insights = metricasclusters
 
-            filmes_lista = []
-            for _, row in cluster.iterrows():
-                filmes_lista.append({
-                    'idefilme': int(row['idefilme']),
+        def extrairtop10(df, coluna, ascendente=False):
+            if ascendente:
+                df_ordenado = df.nsmallest(10, coluna)
+            else:
+                df_ordenado = df.nlargest(10, coluna)
+
+            lista_retorno = []
+            for _, row in df_ordenado.iterrows():
+                lista_retorno.append({
                     'titulo': row['titulo_x'],
-                    'popularidade': float(row['popularidade']),
-                    'notamedia': float(row['notamedia']),
+                    'valor': float(row[coluna]) if coluna != 'totalvotos' else int(row[coluna]),
                     'cluster': int(row['cluster'])
                 })
+            return lista_retorno
+
+        cls._rankings = {
+            'maiores': {
+                'mais_populares': extrairtop10(cluster_df, 'popularidade'),
+                'mais_vistos': extrairtop10(cluster_df, 'totalvotos'),
+                'mais_avaliados': extrairtop10(cluster_df, 'notamedia')
+            },
+            'menores': {
+                'menos_populares': extrairtop10(cluster_df, 'popularidade', ascendente=True),
+                'menos_vistos': extrairtop10(cluster_df, 'totalvotos', ascendente=True),
+                'menos_avaliados': extrairtop10(cluster_df, 'notamedia', ascendente=True)
+            }
+        }
+
+        filmes_lista = []
+        for _, row in cluster_df.iterrows():
+            filmes_lista.append({
+                'idefilme': int(row['idefilme']),
+                'titulo': row['titulo_x'],
+                'popularidade': float(row['popularidade']),
+                'notamedia': float(row['notamedia']),
+                'cluster': int(row['cluster']) + 1
+            })
+        cls._filmes_lista = filmes_lista
+
+        cls._base_processada = True
+
+    def get(self, request, format=None):
+        try:
+            self.inicializador()
 
             resposta_final = {
-                'filmes': filmes_lista,
-                'insights': metricasclusters,
-                'rankings': rankings_gerais
+                'filmes': self._filmes_lista,
+                'insights': self._insights,
+                'rankings': self._rankings
             }
 
             return Response(resposta_final, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
 
 class DetalheFilme(APIView):
     _base_processada = False

@@ -35,15 +35,12 @@ const APP = {
     },
 
     adicionarEventListeners: function() {
-        // Botões principais
         this.elementos.btnPesquisar.addEventListener('click', () => this.executarPesquisa());
         this.elementos.btnLimpar.addEventListener('click', () => this.limparFiltros());
 
-        // Paginação
         this.elementos.btnAnterior.addEventListener('click', () => this.irParaPaginaAnterior());
         this.elementos.btnProximo.addEventListener('click', () => this.irParaProximaPagina());
 
-        // Enter nos inputs
         this.elementos.filtroGenero.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.executarPesquisa();
         });
@@ -54,16 +51,9 @@ const APP = {
     }
 };
 
-// ===================================
-// MÉTODOS DE BUSCA E API
-// ===================================
-/**
- * Busca o poster no TMDb pelo título e atualiza o elemento da imagem no card
- * @param {string} titulo - Título do filme
- * @param {HTMLElement} cardElement - O elemento HTML do card deste filme
- */
+
 APP.buscarEAtualizarPoster = function(titulo, cardElement) {
-    const API_KEY = '0952ce440e4c723a2cc5b6c3df8c6c27'; // <- Cole sua chave aqui
+    const API_KEY = '0952ce440e4c723a2cc5b6c3df8c6c27';
     const url = `https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(titulo)}&language=pt-BR`;
 
     fetch(url)
@@ -188,7 +178,6 @@ APP.renderizarFilmes = function(filmes) {
         const card = this.criarCartaoFilme(filme);
         grid.appendChild(card);
 
-        // Chamada assíncrona: busca a imagem no TMDb e atualiza o card recém-criado
         if (filme.titulo) {
             this.buscarEAtualizarPoster(filme.titulo, card);
         }
